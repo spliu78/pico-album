@@ -8,5 +8,4 @@ declare interface AlbumData {
     createTime: string,
     modifyTime: string,
     data: Array<AlbumFile>
-
 }
