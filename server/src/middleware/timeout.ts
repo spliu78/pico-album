@@ -1,6 +1,6 @@
 import { Middleware } from 'koa';
 
-export function timeout(delay: number): Middleware {
+const timeout = function (delay: number): Middleware {
     return async (ctx, next) => {
         if (delay <= 0) {
             return next();
@@ -26,4 +26,5 @@ export function timeout(delay: number): Middleware {
         }
         await Promise.race([waiting(), nextMiddleware()]);
     };
-}
+};
+export default timeout;

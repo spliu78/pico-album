@@ -1,8 +1,8 @@
 import Router from 'koa-router';
-import { DefaultState, Context } from 'koa';
+import { DefaultState, Context, Middleware } from 'koa';
 import Albums from './Album';
 import path from 'path';
-import { execSync } from 'child_process';
+import open from 'open';
 
 export default class PicoRouter {
     fileList: Array<AlbumFile>;
@@ -22,6 +22,7 @@ export default class PicoRouter {
         // create_album?name=
         this.router.get('/create_album', async (ctx) => {
             const name = ctx.URL.searchParams.get('name');
+            console.log(name);
             if (!name) throw new Error('Album name illegal!');
             this.albums.createAlbum(name);
             await this.albums.saveAlbumToDisk();
@@ -68,13 +69,25 @@ export default class PicoRouter {
             await this.albums.saveAlbumToDisk();
         });
 
-        this.router.get('/open_dir', async (ctx) => {
+        this.router.get('/open', async (ctx) => {
             const filePath = ctx.URL.searchParams.get('path') || '';
-            execSync(`explorer ${path.dirname(filePath)}`);
-        })
+            const type = ctx.URL.searchParams.get('type') || '';
+            if (type === 'file') {
+                await open(filePath);
+            } else {
+                await open(path.dirname(filePath));
+            }
+        });
     }
-
+    setStatus = (): Middleware => {
+        return async (ctx, next) => {
+            await next();
+            ctx.status = 200;
+            ctx.body = ctx.body || { ret: 0 };
+        }
+    }
     public getRouter() {
+        this.router.use(this.setStatus());
         this.buildRouter();
         return this.router;
     }

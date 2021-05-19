@@ -4,9 +4,18 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const koa_router_1 = __importDefault(require("koa-router"));
+const path_1 = __importDefault(require("path"));
+const open_1 = __importDefault(require("open"));
 class PicoRouter {
     constructor(fileList, albumList) {
         this.router = new koa_router_1.default();
+        this.setStatus = () => {
+            return async (ctx, next) => {
+                await next();
+                ctx.status = 200;
+                ctx.body = ctx.body || { ret: 0 };
+            };
+        };
         this.fileList = fileList;
         this.albums = albumList;
     }
@@ -17,6 +26,7 @@ class PicoRouter {
         // create_album?name=
         this.router.get('/create_album', async (ctx) => {
             const name = ctx.URL.searchParams.get('name');
+            console.log(name);
             if (!name)
                 throw new Error('Album name illegal!');
             this.albums.createAlbum(name);
@@ -54,18 +64,27 @@ class PicoRouter {
         });
         this.router.all('/update_album', async (ctx) => {
             const name = ctx.URL.searchParams.get('name');
-            console.log(name);
-            console.log(ctx.request.body);
-            // const data = ctx.request.body as AlbumData;
-            // try {
-            //     if (!name) throw new Error('Album name illegal!');
-            //     this.albums.updateAlbum(name, data);
-            //     await this.albums.saveAlbum();
-            // } catch (e) {
-            // }
+            // console.log(name);
+            // console.log(ctx.request.body);
+            const data = ctx.request.body;
+            if (!name)
+                throw new Error('Album name illegal!');
+            this.albums.updateAlbum(name, data.data);
+            await this.albums.saveAlbumToDisk();
+        });
+        this.router.get('/open', async (ctx) => {
+            const filePath = ctx.URL.searchParams.get('path') || '';
+            const type = ctx.URL.searchParams.get('type') || '';
+            if (type === 'file') {
+                await open_1.default(filePath);
+            }
+            else {
+                await open_1.default(path_1.default.dirname(filePath));
+            }
         });
     }
     getRouter() {
+        this.router.use(this.setStatus());
         this.buildRouter();
         return this.router;
     }

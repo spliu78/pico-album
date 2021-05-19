@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.timeout = void 0;
-function timeout(delay) {
+const timeout = function (delay) {
     return async (ctx, next) => {
         if (delay <= 0) {
             return next();
@@ -16,7 +15,6 @@ function timeout(delay) {
             });
         }
         async function nextMiddleware() {
-            console.log('TimeoutMW');
             try {
                 await next();
             }
@@ -24,13 +22,11 @@ function timeout(delay) {
                 throw e;
             }
             finally {
-                console.log('ClearTimeout');
                 clearTimeout(timer);
             }
-            console.log('TimeoutMWEnd');
         }
         await Promise.race([waiting(), nextMiddleware()]);
     };
-}
-exports.timeout = timeout;
+};
+exports.default = timeout;
 //# sourceMappingURL=timeout.js.map

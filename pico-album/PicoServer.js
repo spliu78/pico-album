@@ -12,9 +12,11 @@ const glob_1 = __importDefault(require("glob"));
 const koa_body_1 = __importDefault(require("koa-body"));
 const Album_1 = __importDefault(require("./Album"));
 const error_handler_1 = __importDefault(require("./middleware/error-handler"));
-const timeout_1 = require("./middleware/timeout");
+const timeout_1 = __importDefault(require("./middleware/timeout"));
+const open_1 = __importDefault(require("open"));
+const mime_1 = __importDefault(require("mime"));
 // 提供picopath，扫描该目录路径下的所有文件，开启页面服务，映射文件至页面中进行展示、筛选
-class PicoAlbum {
+class PicoServer {
     constructor(picoPath, port) {
         this.fileList = [];
         this.picoPath = path_1.default.resolve(picoPath);
@@ -23,8 +25,14 @@ class PicoAlbum {
         this.albums = new Album_1.default(picoPath);
     }
     scanPicoFiles() {
-        const fileArr = glob_1.default.sync(path_1.default.join(this.picoPath, "./picos/**/*"), { nodir: true });
-        this.fileList = fileArr.map(filePath => ({ file: path_1.default.basename(filePath), filePath }));
+        const fileArr = glob_1.default.sync(path_1.default.join(this.picoPath, './picos/**/*'), {
+            nodir: true,
+        });
+        this.fileList = fileArr.map((filePath) => ({
+            file: path_1.default.basename(filePath),
+            filePath: path_1.default.relative(this.picoPath, filePath),
+            mime: mime_1.default.lookup(path_1.default.extname(filePath)),
+        }));
     }
     async startServer() {
         this.scanPicoFiles();
@@ -33,19 +41,25 @@ class PicoAlbum {
         const picoRouter = new PicoRouter_1.default(this.fileList, this.albums).getRouter();
         app
             .use(error_handler_1.default())
-            .use(timeout_1.timeout(2000))
+            .use(timeout_1.default(2000))
             .use(koa_body_1.default())
-            .use(koa_mount_1.default('/pico', koa_static_1.default(this.picoPath)))
             .use(koa_mount_1.default('/', koa_static_1.default(path_1.default.join(__dirname, '../dist'))))
+            .use(koa_mount_1.default('/pico', koa_static_1.default(this.picoPath)))
             .use(picoRouter.routes())
             .use(picoRouter.allowedMethods())
-            .listen(this.port, () => {
+            .listen(this.port, async () => {
             console.info(`> Ready on http://localhost:${this.port}`);
             console.info(`环境变量：${process.env.NODE_ENV || 'dev'}`);
+            try {
+                await open_1.default('http://10.129.149.199:8997');
+            }
+            catch (e) {
+                console.log(e);
+            }
         });
     }
 }
 (async () => {
-    await new PicoAlbum('../pico/to', 8997).startServer();
+    await new PicoServer('../pico/to', 8997).startServer();
 })();
-//# sourceMappingURL=PicoAlbum.js.map
+//# sourceMappingURL=PicoServer.js.map
